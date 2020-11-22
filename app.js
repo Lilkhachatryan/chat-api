@@ -17,7 +17,12 @@ app.use(bodyParser());
 // router middleware
 app.use(router.routes()).use(router.allowedMethods());
 
-mongoose.connect(process.env.MONGODB_URL, { useNewUrlParser: true, useFindAndModify: false }).then(() => {
+mongoose.connect(process.env.MONGODB_URL, {
+    useCreateIndex: true,
+    useNewUrlParser: true,
+    useFindAndModify: false,
+    useUnifiedTopology: true
+}).then(() => {
     console.log("MongoDb");
 
     const PORT = process.env.PORT || 5000;
