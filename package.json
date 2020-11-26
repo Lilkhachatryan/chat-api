@@ -15,7 +15,7 @@
     "bcrypt": "^5.0.0",
     "chai": "^4.2.0",
     "chai-http": "^4.3.0",
-    "chat-mongo-db": "^1.0.3",
+    "chat-mongo-db": "^1.0.4",
     "dotenv": "^8.2.0",
     "jsonwebtoken": "^8.5.1",
     "koa": "^2.13.0",

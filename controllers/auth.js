@@ -1,7 +1,5 @@
 const validator = require('validator');
-const shortid = require('shortid');
 const errorHandler = require('../utils/errorHandler');
-const fs = require('fs').promises;
 const { UsersModel } = require('chat-mongo-db');
 
 const {
@@ -22,49 +20,28 @@ const register = async (ctx) => {
             return
         }
 
-        let users = await fs.readFile('./users.json', 'utf8');
-        users = users ? JSON.parse(users) : {};
-
-        if (!users[email]) {
-            if (!validator.isEmail(email)) {
-                ctx.status = 400;
-                ctx.body = {
-                    message: 'Email is not valid.'
-                };
-                return
-            }
-
-            if (password.length < 8) {
-                ctx.status = 400;
-                ctx.body = {
-                    message: 'Password should be greater than 8 characters.'
-                };
-                return
-            }
-
-            let user = {
-                id: shortid.generate(),
-                firstName,
-                lastName,
-                email,
-                password: generateHashPassword(password)
-            };
-
-            users[email] = user;
-
-            await fs.writeFile('./users.json', JSON.stringify(users));
-
-            ctx.status = 201;
-            ctx.body = {
-                token: generateJWToken(user),
-                // user
-            };
-        } else {
+        if (password.length < 8) {
             ctx.status = 400;
             ctx.body = {
-                message: 'User with the same email already exists.'
+                message: 'Password should be greater than 8 characters.'
             };
+            return
         }
+
+        let user = new UsersModel({
+            firstName,
+            lastName,
+            email,
+            password: generateHashPassword(password)
+        });
+        await user.save();
+
+        ctx.status = 201;
+        ctx.body = {
+            success: true,
+            token: generateJWToken(user),
+            user
+        };
     } catch (e) {
         return errorHandler(ctx, e);
     }
@@ -73,27 +50,23 @@ const register = async (ctx) => {
 const login = async (ctx) => {
     try {
         const { email, password } = ctx.request.body;
-        const test = await UsersModel.find({});
-        console.log('test', test);
 
         if (!(email && password)) {
-            ctx.status = 400;
-            ctx.body = {
-                message: 'Please fill required fields.'
-            };
-            return
+            errorHandler(ctx, {
+                message: "Please fill required fields.",
+                status: 400
+            });
+            return ;
         }
 
-        let users = await fs.readFile('./users.json', 'utf8');
-        users = users ? JSON.parse(users) : {};
-        const user = users[email];
+        let user = await UsersModel.findOne({ email });
 
         if (user) {
             if (!compareHashPassword(password, user.password)) {
-                ctx.status = 400;
-                ctx.body = {
-                    message: 'Given password is invalid.'
-                };
+                errorHandler(ctx, {
+                    message: 'Given password is invalid.',
+                    status: 401
+                });
                 return
             }
 
@@ -105,10 +78,10 @@ const login = async (ctx) => {
                 user
             };
         } else {
-            ctx.status = 400;
-            ctx.body = {
-                message: 'User with given email doesn\'t exists.'
-            };
+            errorHandler(ctx, {
+                message: 'User with given email doesn\'t exists.',
+                status: 400
+            });
         }
     } catch (e) {
         return errorHandler(ctx, e);
